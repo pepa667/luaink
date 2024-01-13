@@ -1,0 +1,190 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    /* color: #d0ccc9; */
+    margin: 0;
+    width: 100vw;
+    max-width: 100%;
+    text-align: center;
+    /* background-image: url("images/background.png"); */
+}
+
+section{
+    position:relative;
+    width: 100%;
+    min-height: 100vh;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.wrap > * {
+    width: 100%;
+}
+
+.hero {
+    background: url(images/background.png);
+    color: #d0ccc9;
+}
+
+#heroWrap > div {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    background: rgb(184, 15, 170);
+}
+
+.sobre {
+    background: rgb(100 20 200);
+}
+
+.sobreTitle {
+    text-align: left;
+    padding: 20px;
+}
+
+.sobreRetrato {
+    width: 70%;
+    aspect-ratio: 1 / 1.5 ;
+    margin: 0 auto;;
+    border-radius: 5vw;
+    background: magenta;
+}
+
+.sobreTXT {
+    width: 90%;
+    margin: 0 auto;
+    font-family: 'Roboto', sans-serif;
+    text-align: justify;
+}
+
+.local {
+    background: rgb(7, 122, 115);
+}
+
+#localWrap {
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#localWrap > * {
+    /* display: inline-block; */
+    /* position: relative; */
+    background: skyblue;
+}
+
+/* .localAtual {
+    height: auto;
+    max-height: 0;
+    background: olive;
+    transition: max-height 2s ease-out;
+} */
+
+/* .localAtual {
+    max-height: 200px;
+} */
+
+.insta {
+    background: rgb(57, 122, 7);
+}
+.instaLogo{
+    position: relative;
+    padding-block: 40px;
+}
+.instaLogoImg {
+    width: 80vmin;
+    height: 80vmin;
+    margin: 0 auto;
+    border-radius: 30px;
+    background: rgb(220, 7, 170);
+}
+.instaChamada{
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    padding: 10px 60px;
+    transform: translateY(-50%);
+    background: rgb(80 173 8 /  0.5);
+}
+
+.instaFoto{
+    /* position: relative; */
+    width: 40%;
+    display: inline-block;;
+}
+
+.instaFoto img {
+    width: 100%;
+    height: auto;
+}
+
+.zap {
+    background: rgb(122, 7, 112);
+}
+
+#zapWrap {
+    position: absolute;
+    width: 80vw;
+    height: 90vh;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    border-radius: 100vw;
+    border-top-left-radius: 0;
+    background: rgb(60, 157, 60);
+
+}
+
+.zapButton {
+    position: absolute;
+    width: 80vw;
+    height: 80vw;
+    bottom: 0px;
+    left: 0;
+    border: none;
+    border-radius: 100vw;
+    background: green;
+    outline: 3px solid rgb(0 128 0);
+    outline-offset: -3px;
+}
+
+.zap input:hover,
+.zap input:focus{
+    transition: 1s;
+    outline: 50px solid rgb(0 128 0 / 0.0);
+    outline-offset: 30px;
+}
+
+.mapa {
+    background: rgb(122, 114, 7);
+}
+.mapaIMG {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    background-image: url(images/header_bg_01.jpg);
+}
+
+.mapaButton {
+    position: absolute;
+    width: 40vw;
+    height: 40vw;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    border: none;
+    border-radius: 100vw;
+    background: rgb(128, 5, 5);
+}
