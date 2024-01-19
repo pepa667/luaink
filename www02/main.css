@@ -13,10 +13,10 @@ body {
     max-width: 100%;
     text-align: center;
     /* background-image: url("images/background.png"); */
+    scroll-snap-type: y mandatory;
 }
 
 main {
-    scroll-snap-type: y mandatory;
 }
 
 section{
