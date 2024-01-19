@@ -16,7 +16,7 @@ body {
 }
 
 main {
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: y mandatory;
 }
 
 section{
