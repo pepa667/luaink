@@ -5,30 +5,29 @@
 }
 
 body {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 32px;
-    /* color: #d0ccc9; */
     margin: 0;
     width: 100vw;
     max-width: 100%;
     height: 100vh;
     overflow: hidden;
+    background-image: url("images/background.png");
     text-align: center;
-    /* background-image: url("images/background.png"); */
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    color: #d0ccc9;
 }
 
 main {
-    height: 100vh;
     width: 100vw;
     max-width: 100%;
-    overflow: scroll;
+    height: 100vh;
+    overflow-y: scroll;
     scroll-snap-type: y mandatory;
 }
 
 section{
     position:relative;
-    width: 100vw;
-    max-width: 100%;
+    width: 100%;
     min-height: 100vh;
     height: 100%;
     margin: 0;
@@ -37,32 +36,21 @@ section{
     scroll-snap-align: start;
 }
 
-/* .wrap > * {
-    width: 100%;
-} */
-
-.hero {
-    /* background: url(images/background.png); */
-    color: #d0ccc9;
-    height: 100vh;
+footer {
+    scroll-snap-align: end;
 }
 
 #heroWrap > div {
     position: absolute;
-    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    /* padding: 20px 50px; */
-    /* background: rgb(184, 15, 170); */
-    opacity: 0;
 }
 
 #heroWrap > .heroBG {
     position: relative;
     width: 100%;
-    height: 120vh;
-    opacity: 1;
-    background: url(images/header_bg_02.jpg) no-repeat center top;
+    height: 100vh;
+    background: url(images/hero_bg_mob.png) no-repeat center top;
     background-size: cover;
 
 }
@@ -70,12 +58,12 @@ section{
     max-width: 80vw;
 }
 
-#heroWrap > div.luaLogo {
+.luaLogo {
     top: 5%;
     bottom: unset;
     transform: translateX(-50%);
     opacity: 1;
-    animation: luaLogo 1000ms;
+    animation: luaLogo 1500ms ease-out;
 }
 
 @keyframes luaLogo {
@@ -91,7 +79,37 @@ section{
     }
 }
 
+.hero .heroSlider {animation: heroSlide 6s ease-out infinite;}
+.heroSlider:nth-child(3) {animation-delay: 2s;}
+.heroSlider:nth-child(4) {animation-delay: 4s;}
+.heroSlider:nth-child(5) {animation-delay: 6s;}
 
+@keyframes heroSlide {
+    0% {
+        bottom: 10%;
+        opacity: 0;
+    }
+    10% {
+        bottom: 20%;
+        opacity: 1;
+    }
+    30% {
+        bottom: 20%;
+        opacity: 1;
+    }
+    40% {
+        bottom: 10%;
+        opacity: 0;
+    }
+    100% {
+        bottom: 0;
+        opacity: 0;
+    }
+}
+
+.heroTXT h1, .heroTXT h2{
+    background-color: black;
+}
 .sobre {
     background: rgb(100 20 200);
 }
