@@ -62,8 +62,8 @@ footer {
     top: 5%;
     bottom: unset;
     transform: translateX(-50%);
-    opacity: 1;
-    animation: luaLogo 1500ms ease-out;
+    opacity: 0;
+    animation: luaLogo 1500ms ease-out forwards;
 }
 
 @keyframes luaLogo {
@@ -110,37 +110,68 @@ footer {
 .heroTXT h1, .heroTXT h2{
     background-color: black;
 }
-.sobre {
-    background: rgb(100 20 200);
-}
 
 .sobreTitle {
+    font-size: 1.5em;
     text-align: left;
-    padding: 20px;
+    padding: 50px 20px;
 }
 
 .sobreRetrato {
-    width: 70%;
-    aspect-ratio: 1 / 1.5 ;
-    margin: 0 auto;;
-    border-radius: 5vw;
-    background: magenta;
-    animation: luaFoto 2000ms;
+    width: 90%;
+    aspect-ratio: 0.76 / 1 ;
+    margin: 0 auto;
+    opacity: 0;
+    /* display: block; */
+    /* border-radius: 5vw; */
+    background: url(images/fotoLua.png) no-repeat center top;
+    background-size: cover;
+}
+
+.animate .sobreRetrato {
+    animation: luaFoto 5500ms forwards;
+    animation-delay: 500ms;
 }
 
 @keyframes luaFoto {
-    from {
+    0% {
         opacity: 0;
-    } to {
+    } 50% {
         opacity: 1;
+    } 80% {
+        opacity: 1;
+    } 99% {
+        opacity: 0;
+        height: auto;
+    } 100%{
+        height: 0;
     }
 }
 
 .sobreTXT {
-    width: 90%;
+    width: 85%;
     margin: 0 auto;
+    opacity: 0;
     font-family: 'Roboto', sans-serif;
+    font-size: 0.8em;
     text-align: justify;
+}
+
+.animate .sobreTXT {
+    animation: luaTXT 1500ms ease-in forwards;
+    animation-delay: 6100ms;
+}
+
+@keyframes luaTXT {
+    0% {
+        transform: translateY(100px);
+        opacity: 0;
+    } 75% {
+        transform: translateY(0px);
+        opacity: 0.5;
+    } 100% {
+        opacity: 1;
+    }
 }
 
 .local {
