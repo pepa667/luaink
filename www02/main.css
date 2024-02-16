@@ -103,7 +103,7 @@ footer {
   }
 
 /* #heroBGmob {background: url(images/hero_bg_mob.jpg) center top;background-size: auto 100%;} */
-#heroBGmob {background: rgba(20,20,20,0.85);}
+#heroBGmob {background: rgba(20,20,20,1);}
 #heroBGfull {background: url(images/hero_bg.png) center top;background-size: auto 100%;}
 
 
