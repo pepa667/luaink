@@ -226,6 +226,7 @@ section{
 
 #sobre{
     width: 100%;
+    height: fit-content;
     background: #101010;
 }
 #sobreWrap{
