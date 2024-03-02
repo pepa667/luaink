@@ -68,9 +68,11 @@ section{
     position: relative;
     width: 100%;
     height: 100svh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    align-items: center;
 }
 
 .heroBG video{
@@ -139,7 +141,7 @@ section{
 
 .cta {
     width: 60vw;
-    margin-inline: auto;
+    /* margin-inline: auto; */
     border-radius: 10px;
     font-size: 2em;
 }
@@ -197,6 +199,7 @@ section{
         opacity: 0;
     }
     100% {
+        transform: translateY(0);
         opacity: 1;
     }
 }
@@ -204,6 +207,7 @@ section{
 @keyframes heroUP {
     0% {
         opacity: 0;
+        height: 30px;
     } 40% {
         opacity: 1;
         height: 30px;
@@ -325,6 +329,7 @@ section{
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow: hidden;
 }
 
 #instaLogo{
@@ -362,14 +367,14 @@ section{
 
 #instaFotos {
     width: 100%;
-    overflow: hidden;
-    padding-block: 20svh;
+    /* overflow: hidden; */
+    padding-top: 20svh;
 }
 
 .instaFoto{
     /* width: 40%;
     display: inline-block;; */
-    height: 20svh;
+    height: 10svh;
     opacity: 0;
     transform: rotateZ(12deg);
     margin-block: 50px;
