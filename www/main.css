@@ -15,7 +15,8 @@ html{
 }
 
 @media (min-width: 480px) {
-    html {scroll-snap-type: y proximity;}
+    html{display: none;}
+    /* html {scroll-snap-type: y proximity;} */
 }
 
 body {
@@ -49,7 +50,7 @@ section{
     min-height: 100svh;
     margin: 0;
     padding: 0;
-    scroll-snap-align: start;
+    /* scroll-snap-align: start; */
 }
 
 .wrap{padding-block: 20px;}
