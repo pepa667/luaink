@@ -6,33 +6,39 @@
     <title>Lua Ink - Tattoo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Roboto:wght@100&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@100&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
     <main>
         <nav></nav>
-        <section id="hero">
+        <section id="hero" class="animate">
             <div id="heroWrap" class="wrap">
                 <div id="heroBGmob" class="heroBG showMob">
-                    <div class="video-container">
-                        <iframe src="https://www.youtube.com/embed/64PDAjDdKJc?controls=0&autoplay=1&mute=1&playsinline=1&loop=1&playlist=64PDAjDdKJc"></iframe>
-                    </div>
+                    <video playsinline autoplay muted loop poster="images/backgroundMOB.png">
+                        <source src="videos/backgroundMOB.webm" type="video/webm">
+                        <source src="videos/backgroundMOB.mp4" type="video/mp4">
+                    </video>
                 </div>
                 <div id="heroBGfull" class="heroBG showFull"></div>
                 <div id="luaLogo">
-                    <img src="images/lua_logo.png" alt="Logo - Lua Ink" class="showMob" id="logoMob">
+                    <img src="images/logoMob.png" alt="Logo - Lua Ink" class="showMob" id="logoMob">
                     <img src="images/lua_logo.png" alt="Logo - Lua Ink" class="showFull" id="logoFull">
                 </div>
-                <h1 id="heroTitle" class="heroEnter">Tatuagens Com&nbsp;Estilo</h1>
+                <h1 id="heroTitle" class="heroEnter">Tatuagens<br>Com&nbsp;Estilo</h1>
                 <a href="#insta" target="_self" class="cta heroEnter" id="ctaTrampos">Trampos</a>
                 <a href="#zap" target="_self" class="cta heroEnter" id="ctaContato">Contato</a>
+                <div id="heroSwipe" class="heroEnter">
+                    <div id="heroSwipeBG">
+                        <div id="heroSwipeFinger">&nbsp;</div>
+                    </div>
+                </div>
             </div>
         </section>
         <section id="sobre">
             <div id="sobreWrap" class="wrap">
-                <h3 id="sobreTitle">Quem é Lua</h3>
                 <div id="sobreRetrato"><img src="images/fotoLua.png" alt="Foto de Lua - Tatuadora"></div>
+                <h3 id="sobreTitle">Quem é Lua</h3>
                 <p id="sobreTXT">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Unde ex, obcaecati dolor cupiditate, minima doloribus odit eligendi ab iste deserunt laborum, at quod ducimus libero modi dicta? Nam laboriosam dolore ea maiores alias quae, nulla repudiandae id esse illum amet.</p>
             </div>
         </section>
@@ -44,15 +50,17 @@
             </div>
         </section>
         <section id="insta">
-            <div id="instaLogo">
-                <div id="instaLogoImg"><img src="images/logoInsta.png" alt=""></div>
-                <span id="instaChamada">Segue no Insta! </span>
-            </div>
-            <div id="instaFotos">
-                <div id="Foto01" class="instaFoto"><img src="images/instaFoto_01.jpg" alt=""></div>
-                <div id="Foto02" class="instaFoto"><img src="images/instaFoto_02.jpg" alt=""></div>
-                <div id="Foto03" class="instaFoto"><img src="images/instaFoto_03.jpg" alt=""></div>
-                <div id="Foto04" class="instaFoto"><img src="images/instaFoto_04.jpg" alt=""></div>
+            <div id="instaWrap" class="wrap">
+                <div id="instaLogo">
+                    <div id="instaLogoImg"><img src="images/logoInsta.png" alt=""></div>
+                    <span id="instaChamada">Segue no Insta! </span>
+                </div>
+                <div id="instaFotos">
+                    <div id="Foto01" class="instaFoto"><img src="images/insta/instaFoto_01.jpg" alt=""></div>
+                    <div id="Foto02" class="instaFoto"><img src="images/insta/instaFoto_02.jpg" alt=""></div>
+                    <div id="Foto03" class="instaFoto"><img src="images/insta/instaFoto_03.jpg" alt=""></div>
+                    <div id="Foto04" class="instaFoto"><img src="images/insta/instaFoto_04.jpg" alt=""></div>
+                </div>
             </div>
         </section>
         <section id="zap">
@@ -67,7 +75,7 @@
                 <input type="button" value="Abrir" id="mapaButton">
             </div>
         </section>
-        <footer>Desenvolvido por Pépa</footer>
+        <footer>Dev by Almighty <h1>!!!-Pépa-!!!</h1></footer>
     </main>
     <!-- <script
         src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.6.1/gsap.min.js"
