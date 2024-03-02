@@ -11,7 +11,7 @@
 
 html{
     scroll-behavior: smooth;
-    /* scroll-snap-type: y mandatory; */
+    /* scroll-snap-type: y proximity; */
 }
 
 @media (min-width: 480px) {
@@ -22,8 +22,6 @@ body {
     margin: 0;
     width: 100vw;
     max-width: 100%;
-    /* height: 100vh;
-    overflow: hidden; */
     background-image: url("images/background.png");
     font-family: "Bebas Neue", sans-serif;
     font-weight: 400;
@@ -40,45 +38,35 @@ a {
 main {
     width: 100vw;
     max-width: 100%;
-    /* height: 100vh;
-    overflow-y: scroll; */
 }
 
+main {max-width: 1920px;margin-inline: auto;box-shadow: 0 0 50px 10px var(--dark);}
 @media (min-width: 480px) {
-    main {max-width: 1280px;}
 }
 section{
     position:relative;
     width: 100%;
-    min-height: 100vh;
+    min-height: 100svh;
     margin: 0;
     padding: 0;
-    /* overflow: hidden; */
     scroll-snap-align: start;
 }
 
+.wrap{padding-block: 20px;}
+
 .showMob {display: block;}
-.showFull {display: none;}
+.showDesk {display: none;}
 @media (min-width: 480px) {
     .showMob {display: none;}
-    .showFull {display: block;}
+    .showDesk {display: block;}
 }
 
-/* footer {
-    scroll-snap-align: end;
-} */
 
-/* #heroWrap > div {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-} */
 
 #heroWrap {
     position: relative;
     width: 100%;
     height: 100svh;
-    padding-bottom: 10px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -95,8 +83,6 @@ section{
     z-index: -100;
 }
 
-/* #heroBGmob {background: url(images/hero_bg_mob.jpg) center top;background-size: auto 100%;} */
-/* #heroBGmob {background: rgba(20,20,20,1);} */
 
 #heroBGmob:after {
     content: "";
@@ -117,21 +103,53 @@ section{
     background: url("images/heroGradient.png");
 }
 
-#ctaTrampos {
-    background: var(--light);
-    color: var(--dark);
+#luaLogo {
+    width: 100%;
+    opacity: 0;
+    animation: luaLogo 4s cubic-bezier(.57,.21,.69,1.25) forwards;
+}
+
+@media (min-width: 480px) {
+    #luaLogo {width: auto;height: 40svh;}
+    #logoDesk {height: inherit;}
+}
+
+@keyframes luaLogo {
+    0% {
+        opacity: 0;
+        transform: scale(2);
+    } 30% {
+        transform: scale(1);
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+#logoMob{
+    width: auto;
+    margin-inline: auto;
+}
+
+#heroTitle {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 100;
+}
+
+.cta {
     width: 60vw;
     margin-inline: auto;
     border-radius: 10px;
     font-size: 2em;
 }
+
+#ctaTrampos {
+    background: var(--light);
+    color: var(--dark);
+}
 #ctaContato {
     background: var(--dark);
     color: var(--light);
-    width: 60vw;
-    margin-inline: auto;
-    border-radius: 10px;
-    font-size: 2em;
     border: 1px solid var(--light);
 }
 #heroSwipe{
@@ -157,51 +175,24 @@ section{
     border-radius: 50px;
 }
 
-#heroBGfull {background: url(images/hero_bg.png) center top;background-size: auto 100%;}
+#heroBGdesk {background: url(images/hero_bg.png) center top;background-size: auto 100%;}
 
-
-#luaLogo {
-    /* position: absolute; */
-    width: 100%;
-    opacity: 0;
-    animation: luaLogo 4s cubic-bezier(.57,.21,.69,1.25) forwards;
-}
-
-@keyframes luaLogo {
-    0% {
-        opacity: 0;
-        transform: translateY(-100%);
-    } 30% {
-        transform: translateY(0);
-    }
-    100% {
-        opacity: 1;
-    }
-}
-
-#logoMob{
-    width: auto;
-    margin-inline: auto;
-}
 
 .heroEnter {animation: heroEnter 0.75s ease-out forwards;opacity: 0;}
 #heroTitle {animation-delay: 1s;}
 #ctaTrampos {animation-delay: 1.5s;}
 #ctaContato {animation-delay: 2s;}
-/* #heroSwipe {animation-delay: 3s;} */
 
 .animate #heroSwipeBG {
-    /* position: absolute;
-    bottom: 0; */
-    animation: heroUP 2s linear infinite;
-    animation-delay: 3ms;
+    animation: heroUP 2s cubic-bezier(0.6, -0.28, 0.74, 0.05) infinite;
+    animation-delay: 3s;
     opacity: 0;
     height: 30px;
 }
 
 @keyframes heroEnter {
     0% {
-        transform: translateY(10vh);
+        transform: translateY(10svh);
         opacity: 0;
     }
     100% {
@@ -226,8 +217,9 @@ section{
 
 #sobre{
     width: 100%;
-    height: fit-content;
-    background: #101010;
+    /* height: fit-content; */
+    /* background: #101010; */
+    background: url(images/background.png) fixed;
 }
 #sobreWrap{
     width: 80%;
@@ -239,25 +231,12 @@ section{
     padding-block: 20px;
 }
 
-#sobreTitle {
-    font-size: 1.5em;
-    text-align: left;
-    /* padding: 40px 0; */
-}
 
 #sobreRetrato {
-    /* width: 90%; */
-    max-height: 40vh;
+    max-height: 40svh;
     padding-block: 0;
     margin-block: 20px;
-    /* opacity: 0; */
-    /* margin: 0 auto; */
     text-align: left;
-    /* width: auto;
-    aspect-ratio: 0.76 / 1 ;
-    background: url(images/fotoLua.png) no-repeat top;
-    background-position: left;
-    background-size: cover; */
 }
 
 
@@ -269,37 +248,47 @@ section{
 
 .animate #sobreRetrato img{
     animation: luaFoto 3000ms ease-in forwards;
-    animation-delay: 500ms;
+    animation-delay: 250ms;
 }
 
 @keyframes luaFoto {
     0% {
-        max-height: 80vh;
+        max-height: 80svh;
         transform: translateX(-50%);
         opacity: 0;
     } 30% {
         transform: translateX(0);
         opacity: 1;
     } 70% {
-        max-height: 80vh;
+        max-height: 80svh;
     } 100% {
         opacity: 1;
-        max-height: 40vh;
+        max-height: 40svh;
     }
 }
 
+#sobreTitle {
+    font-size: 1.5em;
+    text-align: left;
+    opacity: 0;
+}
+
 #sobreTXT {
-    /* width: 85%;
-    margin: 0 auto; */
     opacity: 0;
     font-family: 'Roboto', sans-serif;
     font-size: 0.8em;
+    font-weight: 100;
     text-align: justify;
+}
+
+.animate #sobreTitle {
+    animation: luaTXT 1500ms ease-in forwards;
+    animation-delay: 3000ms;
 }
 
 .animate #sobreTXT {
     animation: luaTXT 1500ms ease-in forwards;
-    animation-delay: 2000ms;
+    animation-delay: 4000ms;
 }
 
 @keyframes luaTXT {
@@ -326,41 +315,93 @@ section{
 }
 
 #insta {
+    height: fit-content;
     position: inherit;
     background: none;
 }
-#instaLogo{
-    position: relative;
-    padding-block: 40px;
-}
-#instaLogoImg {
-    width: 80vmin;
-    height: 80vmin;
-    margin: 0 auto;
-}
-#instaLogoImg img{
-    width: 100%;
-    height: auto;
+
+#instaWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-#instaChamada{
+#instaLogo{
+    position: relative;
+    height: 40svh;
+    /* margin-block: 20px; */
+}
+#instaLogoImg {
+    height: inherit;
+    /* position: relative;
+    width: fit-content;
+    margin: 0 auto; */
+}
+
+#instaLogoImg img {
+    /* width: auto; */
+    height: inherit;
+}
+
+#instaChamada {
     position: absolute;
     top: 50%;
-    left: 5px;
-    padding: 10px 60px;
+    left: -60px;
+    font-size: 1.5em;
+    padding: 15px 60px;
     transform: translateY(-50%);
     background: var(--dark);
 }
 
-#instaFoto{
-    /* position: relative; */
-    width: 40%;
-    display: inline-block;;
+/* #instaFotos {
+    height: 100svh;
+    display: grid;
+    grid-template-rows:repeat(auto-fit,  minmax(10px, max-content));
+} */
+
+#instaFotos {
+    width: 100%;
+    overflow: hidden;
+    padding-block: 20svh;
 }
 
-#instaFoto img {
-    width: 100%;
-    height: auto;
+.instaFoto{
+    /* width: 40%;
+    display: inline-block;; */
+    height: 20svh;
+    opacity: 0;
+    transform: rotateZ(12deg);
+    margin-block: 50px;
+}
+
+.instaFoto img {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: -30px -30px 100px 0px black;
+    outline: 10px solid var(--light);
+    outline-offset: -10px;
+}
+
+.animate .instaFoto{
+    animation: instaFoto 1500ms cubic-bezier(0.39, 0.58, 0.57, 1) forwards;
+    animation-delay: 500ms;
+}
+
+#Foto01 {animation-delay: 0250ms;}
+#Foto02 {animation-delay: 0500ms;}
+#Foto03 {animation-delay: 0750ms;}
+#Foto04 {animation-delay: 1000ms;}
+
+@keyframes instaFoto {
+    0% {
+        transform: scale(0.1) translateY(500px) translateX(-750px) rotateZ(180deg);
+        opacity: 0;
+    } 75% {
+    } 100% {
+        transform: scale(1) translateY(0px) translateX(0px) rotateZ(12deg);
+        opacity: 1;
+    }
 }
 
 #zap {
@@ -368,27 +409,11 @@ section{
 }
 
 #zapWrap {
-    position: absolute;
-    width: 80vw;
-    height: 90vh;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
-    border-radius: 100vw;
-    border-top-left-radius: 0;
-    text-align: left;
-    background: rgb(60, 157, 60);
     
 }
 
-#zapChamada, #zapSubT{text-wrap: pretty;}
 
 #zapButton {
-    position: absolute;
-    width: 80vw;
-    height: 80vw;
-    bottom: 0px;
-    left: 0;
     border: none;
     border-radius: 100vw;
     background: green;
@@ -407,23 +432,15 @@ section{
     background: rgb(122, 114, 7);
 }
 #mapaIMG {
-    position: absolute;
-    width: 80%;
-    height: 80%;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
     background-image: url(images/header_bg_01.jpg);
 }
 
 #mapaButton {
-    position: absolute;
-    width: 20vmin;
-    height: 20vmin;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
     border: none;
     border-radius: 100vw;
     background: rgb(128, 5, 5);
+}
+
+footer{
+    scroll-snap-align: end;
 }
