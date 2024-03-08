@@ -15,7 +15,7 @@ html{
 }
 
 @media (min-width: 480px) {
-    html{display: none;}
+    /* html{display: none;} */
     /* html {scroll-snap-type: y proximity;} */
 }
 
