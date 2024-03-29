@@ -1,9 +1,11 @@
 :root {
-    --preto: 0, 0%, 8%;
-    --branco: 0, 0%, 74%;
-    --escuro: 44, 29%, 18%;
-    --claro: 48, 18%, 57%;
-    --destaque: 47, 79%, 39%;
+    --preto: hsl(0, 0%, 6%);
+    --branco: hsl(0, 0%, 94%);
+    --escuro: hsl(225, 14%, 11%);
+    --escuroAlpha: rgba(24, 26, 32, 0.75);
+    --claro: hsl(0, 11%, 77%);
+    /* --cor: hsl(51, 100%, 50%); */
+    --cor: var(--claro);
 }
 
 * {
@@ -26,13 +28,8 @@ body {
     font-style: normal;
     text-align: center;
     font-size: 48px;
-    color: hsl(var(--claro));
-    background-color: hsl(var(--preto));
-}
-
-a, a:visited {
-    color: hsl(var(--destaque));
-    text-decoration: none;
+    color: var(--claro);
+    background-color: var(--escuro);
 }
 
 main {
@@ -56,9 +53,10 @@ section{
     margin-inline: auto;
     padding-inline: min(4svw, 24px);
     padding-block: 50px;
-    background-color: hsl(var(--preto));
+    background-color: var(--escuro);
 }
 
+main {box-shadow: 0 0 50px 10px var(--escuro);}
 @media (max-width: 480px) {
     body {
         font-size: 32px;   
@@ -108,18 +106,15 @@ section{
     padding-block: 20px;
     text-decoration: none;
     font-size: 1.5em;
-    color: hsl(var(--destaque));
-    transition: color 250ms, background 250ms, box-shadow 250ms;
+    color: var(--cor);
 }
 
 .cta:hover{
-    box-shadow: inset 0 0 0 2px hsl(var(--destaque));
+    border: 1px solid var(--cor);
 }
 
-#ctaTrampos {background: hsl(var(--escuro));color: hsl(var(--claro));}
-#ctaContato {background: hsl(var(--claro));color: hsl(var(--escuro));}
-#ctaTrampos:hover {background: hsl(var(--branco));color: hsl(var(--destaque));}
-#ctaContato:hover {background: hsl(var(--preto));color: hsl(var(--destaque));}
+#ctaTrampos {background: var(--escuro);}
+#ctaContato {background: var(--claro);}
 
 @media (max-width: 480px) {
     .cta {
@@ -147,10 +142,11 @@ section{
 #sobreInfo {
     height: 100%;
     padding: 20px;
-    background-color: hsla(var(--escuro) , 0.85);
-    border: 1px solid hsl(var(--claro));
+    background-color: var(--escuroAlpha);
+    border: 1px solid var(--cor);
     text-align: left;
-    box-shadow: 10px 10px 0 hsl(var(--claro));
+    color: var(--cor);
+    box-shadow: 10px 10px 0 var(--cor);
 }
 
 #sobreTitulo {
@@ -218,10 +214,10 @@ section{
     aspect-ratio: 1/1;
     overflow: hidden;
     text-decoration: none;
-    color: hsl(var(--destaque));
+    color: var(--cor);
+    /* background-color: #00ffee77; */
 }
 #tramposGaleria>a:hover .trampoAbre {
-    transition: opacity 250ms;
     opacity: 1;
 }
 
@@ -235,8 +231,8 @@ section{
     flex-direction: column;
     justify-content: space-around;
     font-family: "Roboto", sans-serif;
-    background-color: hsla(var(--escuro) , 0.8);
-    border: 4px solid hsl(var(--destaque));
+    background-color: var(--escuroAlpha);
+    border: 4px solid var(--cor);
     opacity: 0.0;
 }
 
@@ -275,10 +271,6 @@ section{
     text-align: right;
 }
 
-#tramposFIM a{
-    margin-left: 40px;
-}
-
 #tramposFIM img{
     position: relative;
     height: 120%;
@@ -313,9 +305,10 @@ section{
     background-size: cover;
     background-position-y: center;
     padding-block: 50px;
-    color: hsl(var(--escuro))
 }
 #zapWrap {
+    position: relative;
+    justify-content: space-around;
     padding-inline: min(4svw, 24px);
     padding-block: 50px;
     margin: auto;
@@ -334,10 +327,10 @@ section{
 }
 
 #zapWrap>* {
+    /* display: inline-block; */
 }
 
 #zapWrap>div {
-    margin-inline: auto;
     text-align: right;
 }
 
@@ -345,27 +338,12 @@ section{
     font-size: 2.2em;
 }
 
-#zapBotao {
-    padding-inline: 20px;
-    background: hsla(var(--escuro),0.75);
-    border-radius: 50px;
-    font-family: "Roboto", sans-serif;
-    color: hsl(var(--claro));
-    transition: color 250ms, background 250ms, box-shadow 250ms;
-}
-
-#zapBotao:hover{
-    color: hsl(var(--destaque));
-    background: hsla(var(--escuro),1);
-    box-shadow: inset 0 0 0 2px hsl(var(--destaque));
-
-}
-
 #zapBotao img{
-    position: relative;
-    height: 75px;
-    transform: translateY(30%);
-    margin: 0 10px;
+    display: block;
+    /* height: 120%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%); */
 }
 
 #zapSubTitulo {
@@ -376,7 +354,7 @@ section{
 #localWrap>div{
     width: 50%;
     aspect-ratio: 1/0.8;
-    border: 4px solid hsl(var(--claro));
+    border: 4px solid var(--claro);
 }
 
 #localTrampo {
@@ -405,7 +383,7 @@ section{
     width: 100%;
     height: 100%;
     position: relative;
-    color: hsl(var(--destaque));
+    color: var(--cor);
     background-image: url(images/mapa.jpg);
     background-size: cover;
 }
@@ -417,7 +395,7 @@ section{
     left: 50%;
     transform: translateX(-50%);
     padding: 20px 50px;
-    background-color: hsl(var(--escuro));
+    background-color: var(--escuro);
     border-radius: 40px;
 }
 
@@ -429,7 +407,7 @@ section{
     transform: translateX(-50%);
     border: 0 solid transparent;
     border-width: 0px 30px 30px 30px;
-    border-bottom-color: hsl(var(--escuro));
+    border-bottom-color: var(--escuro);
 }
 
 #localMapa a div>* {
@@ -465,11 +443,11 @@ footer {
     width: 60%;
     margin: 0 auto;
     padding-block: 5px;
-    background-color: hsl(var(--claro));
+    background-color: var(--claro);
     font-size: 0.5em;
 }
 
 footer a {
     text-decoration: none;
-    color: hsl(var(--escuro));
+    color: var(--escuro);
 }
