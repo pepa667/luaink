@@ -3,7 +3,7 @@ const accessToken = 'IGQWRNQ0lRaGpwZAkk3NVJHOUZASRy1BZAEhOaTE0RFFMYzJFSVZAiSy1NS
 
 // Function to fetch and display Instagram feed
 function getInstagramFeed() {
-    fetch(`https://graph.instagram.com/v12.0/me/media?size=t&fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${accessToken}`)
+    fetch(`https://graph.instagram.com/v12.0/me/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${accessToken}`)
         .then(response => response.json())
         .then(data => {
             const feedContainer = document.getElementById('instagram-feed');
@@ -15,7 +15,7 @@ function getInstagramFeed() {
 
                 const postImage = document.createElement('img');
                 // postImage.src = "https://graph.facebook.com/v19.0/instagram_oembed?url=https%3A%2F%2Fwww.instagram.com%2Fp%2F&maxwidth=320&fields=thumbnail_url%2Cauthor_name%2Cprovider_name%2Cprovider_url&access_token=" + ${accessToken};
-                postImage.src = post.permalink + "media/?size=t";
+                postImage.src = post.media_url;
                 postImage.alt = post.caption;
 
                 postLink.appendChild(postImage);
@@ -27,4 +27,3 @@ function getInstagramFeed() {
 
 // Call the function to fetch and display the Instagram feed
 getInstagramFeed();
-
