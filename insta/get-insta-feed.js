@@ -8,7 +8,15 @@ const USERNAME = process.env.INSTA_USERNAME;
 const IMAGES_DIR = path.join(__dirname, '../www/images/insta');
 const LINKS_JSON_PATH = path.join(__dirname, '../www/insta-links.json');
 
-// Garante as pastas logo no início
+// Headers obrigatórios para a API mobile do Instagram.
+// Sem X-IG-App-ID o Instagram retorna HTML da página de login em vez de JSON.
+const INSTA_HEADERS_B64 = Buffer.from(JSON.stringify({
+    'X-IG-App-ID': '936619743392459',
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram/334.0.0.12.96',
+    'Accept': 'application/json',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+})).toString('base64');
+
 fs.mkdirSync(IMAGES_DIR, { recursive: true });
 if (!fs.existsSync(LINKS_JSON_PATH)) {
     fs.writeFileSync(LINKS_JSON_PATH, JSON.stringify({ posts: [] }, null, 2));
@@ -34,18 +42,12 @@ function downloadFile(url, destPath) {
     });
 }
 
-async function requestJson(url) {
+function requestRaw(url) {
     return new Promise((resolve, reject) => {
         https.get(url, (res) => {
             let data = '';
             res.on('data', (chunk) => data += chunk);
-            res.on('end', () => {
-                try {
-                    resolve({ ok: res.statusCode === 200, body: JSON.parse(data) });
-                } catch (e) {
-                    reject(new Error(`Resposta não é um JSON válido. Recebido: ${data.slice(0, 100)}`));
-                }
-            });
+            res.on('end', () => resolve({ statusCode: res.statusCode, body: data }));
         }).on('error', (err) => reject(err));
     });
 }
@@ -58,18 +60,31 @@ async function runScraper() {
         process.exit(1);
     }
 
-    // Endpoint público com HTTPS e usando a URL de proxy também em HTTPS
     const targetInstagramUrl = `https://www.instagram.com/api/v1/feed/user/${USERNAME}/username/?count=12`;
-    const proxyUrl = `https://api.scrape.do?token=${SCRAPER_KEY}&url=${encodeURIComponent(targetInstagramUrl)}`;
+    const proxyUrl = `https://api.scrape.do?token=${SCRAPER_KEY}&url=${encodeURIComponent(targetInstagramUrl)}&customHeaders=${INSTA_HEADERS_B64}`;
 
     try {
-        const res = await requestJson(proxyUrl);
+        const res = await requestRaw(proxyUrl);
 
-        if (!res.ok || !res.body.items) {
-            throw new Error("Não foi possível coletar os dados do feed. Resposta inválida do proxy.");
+        console.log(`[DEBUG] HTTP Status do proxy: ${res.statusCode}`);
+        console.log(`[DEBUG] Resposta (primeiros 300 chars): ${res.body.slice(0, 300)}`);
+
+        if (res.statusCode !== 200) {
+            throw new Error(`Status HTTP inesperado do proxy: ${res.statusCode}`);
         }
 
-        const items = res.body.items.filter(item => item.media_type === 1 || item.media_type === 8);
+        let parsed;
+        try {
+            parsed = JSON.parse(res.body);
+        } catch (e) {
+            throw new Error(`Resposta não é JSON válido. Conteúdo recebido: ${res.body.slice(0, 400)}`);
+        }
+
+        if (!parsed.items || parsed.items.length === 0) {
+            throw new Error(`Feed vazio ou formato inesperado. Chaves recebidas: ${Object.keys(parsed).join(', ')}`);
+        }
+
+        const items = parsed.items.filter(item => item.media_type === 1 || item.media_type === 8);
         const topPosts = items.slice(0, 9);
         const linksData = [];
 
@@ -96,11 +111,11 @@ async function runScraper() {
         }
 
         fs.writeFileSync(LINKS_JSON_PATH, JSON.stringify({ posts: linksData }, null, 2));
-        console.log("[SUCCESS] Sincronização realizada com sucesso via Scrape.do!");
+        console.log('[SUCCESS] Sincronização realizada com sucesso!');
 
     } catch (error) {
-        console.error(`[CRITICAL] O Script falhou: ${error.message}`);
-        process.exit(1); // Deixamos quebrar aqui pro log te avisar se o JSON do Insta mudar
+        console.error(`[CRITICAL] O script falhou: ${error.message}`);
+        process.exit(1);
     }
 }
 
