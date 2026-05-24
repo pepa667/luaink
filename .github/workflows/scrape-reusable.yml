@@ -11,6 +11,8 @@ on:
         required: true
       INSTA_USERNAME:
         required: true
+      INSTA_SESSION_ID:
+        required: true
 
 jobs:
   scrape:
@@ -50,6 +52,7 @@ jobs:
         env:
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
           INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}
+          INSTA_SESSION_ID: ${{ secrets.INSTA_SESSION_ID }}
           IMAGES_DIR: ${{ github.workspace }}/www/images/insta
           LINKS_JSON_PATH: ${{ github.workspace }}/www/insta-links.json
           DEBUG_HTML_PATH: ${{ github.workspace }}/www/debug-insta.html

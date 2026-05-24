@@ -4,6 +4,7 @@ const https = require('https');
 
 const SCRAPER_KEY = process.env.SCRAPER_API_KEY;
 const USERNAME = process.env.INSTA_USERNAME;
+const SESSION_ID = process.env.INSTA_SESSION_ID; // Cookie sessionid do Instagram (obrigatorio)
 
 const IMAGES_DIR = process.env.IMAGES_DIR || path.join(__dirname, '../www/images/insta');
 const LINKS_JSON_PATH = process.env.LINKS_JSON_PATH || path.join(__dirname, '../www/insta-links.json');
@@ -119,72 +120,77 @@ async function runScraper() {
     if (!SCRAPER_KEY || !USERNAME) {
         throw new Error('Falta configurar SCRAPER_API_KEY ou INSTA_USERNAME nos Secrets.');
     }
+    if (!SESSION_ID) {
+        throw new Error(
+            'INSTA_SESSION_ID nao configurado.\n' +
+            'Como obter: Chrome -> instagram.com -> F12 -> Application -> Cookies -> sessionid\n' +
+            'Adiciona como Secret no GitHub: Settings -> Secrets -> Actions -> INSTA_SESSION_ID'
+        );
+    }
 
-    let posts = null;
-
-    // ESTRATEGIA 1: endpoint JSON do Instagram via scrape.do com X-IG-App-ID
-    // Este e o mesmo endpoint que o frontend do Instagram usa — retorna JSON estruturado.
-    // Requer customHeaders=true para o scrape.do repassar o header X-IG-App-ID.
-    const apiEndpoint = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
-    const proxyApiUrl = new URL('https://api.scrape.do');
-    proxyApiUrl.searchParams.set('token', SCRAPER_KEY);
-    proxyApiUrl.searchParams.set('url', apiEndpoint);
-    proxyApiUrl.searchParams.set('customHeaders', 'true');
-
-    console.log('[STRATEGY 1] Chamando web_profile_info JSON API...');
-    const apiRes = await requestRaw(proxyApiUrl.toString(), {
+    // Headers que o frontend do Instagram usa para chamar a propria API
+    const igHeaders = {
         'x-ig-app-id': '936619743392459',
+        'cookie': `sessionid=${SESSION_ID}`,
         'accept': '*/*',
         'accept-language': 'en-US,en;q=0.9',
         'referer': 'https://www.instagram.com/',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         'sec-fetch-dest': 'empty',
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-origin',
-    });
+    };
+    const apiEndpoint = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
 
-    console.log(`[DEBUG] API Status: ${apiRes.statusCode} | Body: ${apiRes.body.slice(0, 300)}`);
+    let posts = null;
 
-    if (apiRes.statusCode === 200) {
-        try {
-            const json = JSON.parse(apiRes.body);
-            posts = extractPostsFromObject(json);
-            if (posts?.length > 0) console.log(`[STRATEGY 1] Sucesso! ${posts.length} posts encontrados.`);
-            else console.log('[STRATEGY 1] JSON parseado mas posts nao encontrados na estrutura.');
-        } catch (e) {
-            console.log(`[STRATEGY 1] JSON parse falhou: ${e.message}. Body: ${apiRes.body.slice(0, 200)}`);
-        }
-    }
-
-    // ESTRATEGIA 2: render=true com wait=8000 para aguardar o React carregar os posts
-    // Instagram e uma SPA — os posts so aparecem no DOM apos o JS fazer os fetches de API.
-    if (!posts || posts.length === 0) {
-        console.log('[STRATEGY 2] Tentando render=true com wait=8000ms...');
-        const targetUrl = `https://www.instagram.com/${USERNAME}/`;
+    // ESTRATEGIA 1: via scrape.do com customHeaders + session cookie
+    // customHeaders=true faz o scrape.do repassar os headers (incluindo Cookie) para o Instagram
+    {
         const proxyUrl = new URL('https://api.scrape.do');
         proxyUrl.searchParams.set('token', SCRAPER_KEY);
-        proxyUrl.searchParams.set('url', targetUrl);
-        proxyUrl.searchParams.set('render', 'true');
-        proxyUrl.searchParams.set('wait', '8000');
+        proxyUrl.searchParams.set('url', apiEndpoint);
+        proxyUrl.searchParams.set('customHeaders', 'true');
 
-        const res = await requestRaw(proxyUrl.toString());
-
-        console.log(`[DEBUG] HTML Status: ${res.statusCode} | Tamanho: ${res.body.length} chars`);
-        const postLinks = [...res.body.matchAll(/href="\/p\/([A-Za-z0-9_-]+)\/"/g)].map(m => m[1]);
-        const cdnImages = (res.body.match(/cdninstagram\.com|fbcdn\.net/g) || []).length;
-        console.log(`[DEBUG] Links /p/: ${postLinks.length} | Refs CDN: ${cdnImages}`);
+        console.log('[STRATEGY 1] web_profile_info via scrape.do + session cookie...');
+        const res = await requestRaw(proxyUrl.toString(), igHeaders);
+        console.log(`[DEBUG] Status: ${res.statusCode} | Body: ${res.body.slice(0, 300)}`);
 
         if (res.statusCode === 200) {
-            posts = extractPostsFromScripts(res.body);
-            if (!posts || posts.length === 0) posts = extractPostsFromHTML(res.body);
+            try {
+                const json = JSON.parse(res.body);
+                posts = extractPostsFromObject(json);
+                if (posts?.length > 0) console.log(`[STRATEGY 1] Sucesso! ${posts.length} posts.`);
+                else console.log('[STRATEGY 1] JSON OK mas sem posts na estrutura. scrape.do pode estar a bloquear o header Cookie.');
+            } catch (e) {
+                console.log(`[STRATEGY 1] JSON parse falhou: ${e.message}`);
+            }
         }
+    }
 
-        if (!posts || posts.length === 0) {
-            fs.writeFileSync(DEBUG_HTML_PATH, res.body);
+    // ESTRATEGIA 2: chamada direta ao Instagram (sem proxy) com session cookie
+    // Fallback caso o scrape.do nao repasse o header Cookie
+    if (!posts || posts.length === 0) {
+        console.log('[STRATEGY 2] Chamada direta ao Instagram com session cookie...');
+        const res = await requestRaw(apiEndpoint, igHeaders);
+        console.log(`[DEBUG] Status: ${res.statusCode} | Body: ${res.body.slice(0, 300)}`);
+
+        if (res.statusCode === 200) {
+            try {
+                const json = JSON.parse(res.body);
+                posts = extractPostsFromObject(json);
+                if (posts?.length > 0) console.log(`[STRATEGY 2] Sucesso! ${posts.length} posts.`);
+                else console.log('[STRATEGY 2] JSON OK mas sem posts. Verifica se INSTA_SESSION_ID esta correto e valido.');
+            } catch (e) {
+                console.log(`[STRATEGY 2] JSON parse falhou: ${e.message}`);
+            }
+        } else if (res.statusCode === 401 || res.statusCode === 403) {
+            console.log('[STRATEGY 2] Sessao invalida ou expirada. Renova o INSTA_SESSION_ID.');
         }
     }
 
     if (!posts || posts.length === 0) {
-        throw new Error('Posts nao encontrados. Verifique o artefato debug-insta.html para diagnostico.');
+        throw new Error('Posts nao encontrados. Verifica se INSTA_SESSION_ID e valido (Chrome -> instagram.com -> F12 -> Application -> Cookies -> sessionid).');
     }
 
     const topPosts = posts.slice(0, 9);

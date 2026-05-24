@@ -19,3 +19,4 @@ jobs:
     secrets:
       SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
       INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}
+      INSTA_SESSION_ID: ${{ secrets.INSTA_SESSION_ID }}
