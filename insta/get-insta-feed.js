@@ -68,7 +68,9 @@ async function runScraper() {
         process.exit(1);
     }
 
-    const targetInstagramUrl = `https://www.instagram.com/api/v1/feed/user/${USERNAME}/username/?count=12`;
+    // web_profile_info retorna a grade pública do perfil sem precisar de sessão.
+    // O endpoint /feed/user/{username}/username/ só devolve posts para usuários logados.
+    const targetInstagramUrl = `https://i.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
     // customHeaders=true: scrape.do encaminha os headers desta requisição para o Instagram
     const proxyUrl = `https://api.scrape.do?token=${SCRAPER_KEY}&url=${encodeURIComponent(targetInstagramUrl)}&customHeaders=true`;
 
@@ -89,23 +91,27 @@ async function runScraper() {
             throw new Error(`Resposta não é JSON válido. Conteúdo recebido: ${res.body.slice(0, 400)}`);
         }
 
-        if (!parsed.items || parsed.items.length === 0) {
+        const edges = parsed?.data?.user?.edge_owner_to_timeline_media?.edges;
+        if (!edges || edges.length === 0) {
             throw new Error(`Feed vazio ou formato inesperado. Chaves recebidas: ${Object.keys(parsed).join(', ')}`);
         }
 
-        const items = parsed.items.filter(item => item.media_type === 1 || item.media_type === 8);
-        const topPosts = items.slice(0, 9);
+        // Filtra vídeos; aceita fotos (GraphImage) e carrosséis (GraphSidecar)
+        const topPosts = edges
+            .filter(e => e.node.__typename !== 'GraphVideo')
+            .slice(0, 9);
         const linksData = [];
 
         console.log(`[PIPELINE] Processando ${topPosts.length} posts coletados...`);
 
         for (let i = 0; i < topPosts.length; i++) {
-            const post = topPosts[i];
+            const node = topPosts[i].node;
             const indexValue = String(i + 1).padStart(2, '0');
             const imageName = `instaFoto_${indexValue}.jpg`;
             const destPath = path.join(IMAGES_DIR, imageName);
 
-            const imageUrl = post.image_versions2?.candidates?.[0]?.url || post.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url;
+            // display_url é a imagem em tamanho completo
+            const imageUrl = node.display_url || node.thumbnail_src;
 
             if (imageUrl) {
                 console.log(`-> Baixando imagem [${indexValue}/09]...`);
@@ -114,7 +120,7 @@ async function runScraper() {
                 linksData.push({
                     index: indexValue,
                     localImage: `images/insta/${imageName}`,
-                    permalink: `https://www.instagram.com/p/${post.code}/`
+                    permalink: `https://www.instagram.com/p/${node.shortcode}/`,
                 });
             }
         }
