@@ -75,6 +75,16 @@ function extractPostsFromObject(obj, depth = 0) {
                     || e.node.display_url || e.node.thumbnail_src,
             })).filter(p => p.shortcode && p.imageUrl);
     }
+    // Formato API mobile: items[] com 'code' e image_versions2
+    if (Array.isArray(obj.items) && obj.items.length > 0 && obj.items[0]?.code) {
+        const posts = obj.items
+            .filter(item => (item.code || item.shortcode) && item.media_type !== 2) // exclui videos
+            .map(item => ({
+                shortcode: item.code || item.shortcode,
+                imageUrl: item.image_versions2?.candidates?.[0]?.url || item.display_url,
+            })).filter(p => p.shortcode && p.imageUrl);
+        if (posts.length > 0) return posts;
+    }
     for (const val of Object.values(obj)) {
         const found = extractPostsFromObject(val, depth + 1);
         if (found) return found;
@@ -140,52 +150,92 @@ async function runScraper() {
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-origin',
     };
-    const apiEndpoint = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
 
     let posts = null;
 
-    // ESTRATEGIA 1: via scrape.do com customHeaders + session cookie
-    // customHeaders=true faz o scrape.do repassar os headers (incluindo Cookie) para o Instagram
+    // ESTRATEGIA 1: web_profile_info → extrai user_id → feed/user/{id}
+    // web_profile_info retorna o perfil (sem posts). O user_id e usado para chamar
+    // o endpoint de feed que retorna os posts com imagens.
     {
+        const profileUrl = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
         const proxyUrl = new URL('https://api.scrape.do');
         proxyUrl.searchParams.set('token', SCRAPER_KEY);
-        proxyUrl.searchParams.set('url', apiEndpoint);
+        proxyUrl.searchParams.set('url', profileUrl);
         proxyUrl.searchParams.set('customHeaders', 'true');
 
-        console.log('[STRATEGY 1] web_profile_info via scrape.do + session cookie...');
-        const res = await requestRaw(proxyUrl.toString(), igHeaders);
-        console.log(`[DEBUG] Status: ${res.statusCode} | Body: ${res.body.slice(0, 300)}`);
+        console.log('[STRATEGY 1a] Obtendo user_id via web_profile_info...');
+        const profileRes = await requestRaw(proxyUrl.toString(), igHeaders);
+        console.log(`[DEBUG] Profile Status: ${profileRes.statusCode} | Body: ${profileRes.body.slice(0, 200)}`);
 
-        if (res.statusCode === 200) {
+        let userId = null;
+        if (profileRes.statusCode === 200) {
             try {
-                const json = JSON.parse(res.body);
+                const json = JSON.parse(profileRes.body);
+                userId = json?.data?.user?.id;
+                // Tenta extrair posts diretamente caso o formato inclua (formato antigo)
                 posts = extractPostsFromObject(json);
-                if (posts?.length > 0) console.log(`[STRATEGY 1] Sucesso! ${posts.length} posts.`);
-                else console.log('[STRATEGY 1] JSON OK mas sem posts na estrutura. scrape.do pode estar a bloquear o header Cookie.');
+                if (posts?.length > 0) console.log(`[STRATEGY 1a] Posts no profile response: ${posts.length}`);
+                else if (userId) console.log(`[STRATEGY 1a] user_id obtido: ${userId}. Buscando feed...`);
+                else console.log('[STRATEGY 1a] Sem user_id nem posts no profile response.');
             } catch (e) {
-                console.log(`[STRATEGY 1] JSON parse falhou: ${e.message}`);
+                console.log(`[STRATEGY 1a] Parse falhou: ${e.message}`);
+            }
+        }
+
+        // Step 2: busca o feed com o user_id
+        if (userId && (!posts || posts.length === 0)) {
+            const feedUrl = `https://i.instagram.com/api/v1/feed/user/${userId}/?count=12`;
+            const proxyFeedUrl = new URL('https://api.scrape.do');
+            proxyFeedUrl.searchParams.set('token', SCRAPER_KEY);
+            proxyFeedUrl.searchParams.set('url', feedUrl);
+            proxyFeedUrl.searchParams.set('customHeaders', 'true');
+
+            console.log('[STRATEGY 1b] Obtendo posts via feed/user/{id}...');
+            const feedRes = await requestRaw(proxyFeedUrl.toString(), igHeaders);
+            console.log(`[DEBUG] Feed Status: ${feedRes.statusCode} | Body: ${feedRes.body.slice(0, 400)}`);
+
+            if (feedRes.statusCode === 200) {
+                try {
+                    const json = JSON.parse(feedRes.body);
+                    posts = extractPostsFromObject(json);
+                    if (posts?.length > 0) console.log(`[STRATEGY 1b] Sucesso! ${posts.length} posts.`);
+                    else console.log('[STRATEGY 1b] JSON OK mas posts nao encontrados. Keys: ' + Object.keys(json).join(', '));
+                } catch (e) {
+                    console.log(`[STRATEGY 1b] Parse falhou: ${e.message}`);
+                }
             }
         }
     }
 
-    // ESTRATEGIA 2: chamada direta ao Instagram (sem proxy) com session cookie
-    // Fallback caso o scrape.do nao repasse o header Cookie
+    // ESTRATEGIA 2: chamada direta ao Instagram (sem proxy) — fallback
     if (!posts || posts.length === 0) {
         console.log('[STRATEGY 2] Chamada direta ao Instagram com session cookie...');
-        const res = await requestRaw(apiEndpoint, igHeaders);
-        console.log(`[DEBUG] Status: ${res.statusCode} | Body: ${res.body.slice(0, 300)}`);
+        const profileUrl = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
+        const profileRes = await requestRaw(profileUrl, igHeaders);
+        console.log(`[DEBUG] Direct Status: ${profileRes.statusCode} | Body: ${profileRes.body.slice(0, 200)}`);
 
-        if (res.statusCode === 200) {
+        let userId = null;
+        if (profileRes.statusCode === 200) {
             try {
-                const json = JSON.parse(res.body);
+                const json = JSON.parse(profileRes.body);
+                userId = json?.data?.user?.id;
                 posts = extractPostsFromObject(json);
-                if (posts?.length > 0) console.log(`[STRATEGY 2] Sucesso! ${posts.length} posts.`);
-                else console.log('[STRATEGY 2] JSON OK mas sem posts. Verifica se INSTA_SESSION_ID esta correto e valido.');
-            } catch (e) {
-                console.log(`[STRATEGY 2] JSON parse falhou: ${e.message}`);
+            } catch (e) { /* sem posts no profile */ }
+        }
+
+        if (userId && (!posts || posts.length === 0)) {
+            const feedUrl = `https://i.instagram.com/api/v1/feed/user/${userId}/?count=12`;
+            const feedRes = await requestRaw(feedUrl, igHeaders);
+            console.log(`[DEBUG] Direct Feed Status: ${feedRes.statusCode} | Body: ${feedRes.body.slice(0, 200)}`);
+            if (feedRes.statusCode === 200) {
+                try {
+                    const json = JSON.parse(feedRes.body);
+                    posts = extractPostsFromObject(json);
+                    if (posts?.length > 0) console.log(`[STRATEGY 2] Sucesso! ${posts.length} posts.`);
+                } catch (e) { /* falhou */ }
+            } else if (feedRes.statusCode === 401 || feedRes.statusCode === 403) {
+                console.log('[STRATEGY 2] Sessao invalida ou expirada.');
             }
-        } else if (res.statusCode === 401 || res.statusCode === 403) {
-            console.log('[STRATEGY 2] Sessao invalida ou expirada. Renova o INSTA_SESSION_ID.');
         }
     }
 
