@@ -1,0 +1,21 @@
+# Template para repo cliente
+# Copie este arquivo para .github/workflows/update-instagram.yml no repo do cliente.
+# Configure dois secrets no repo cliente:
+#   - SCRAPER_API_KEY: chave da conta scrape.do (compartilhada entre todos os clientes)
+#   - INSTA_USERNAME: username do Instagram deste cliente (ex: luaink.tattoo)
+#
+# O script e a lógica de scraping ficam em pepa667/luaink — zero manutenção no cliente.
+
+name: update-instagram-feed
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Ajuste o horário para não colidir com outros clientes
+  workflow_dispatch:
+
+jobs:
+  update-feed:
+    uses: pepa667/luaink/.github/workflows/scrape-reusable.yml@main
+    secrets:
+      SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+      INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}

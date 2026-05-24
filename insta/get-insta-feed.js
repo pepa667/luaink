@@ -5,8 +5,9 @@ const https = require('https');
 const SCRAPER_KEY = process.env.SCRAPER_API_KEY;
 const USERNAME = process.env.INSTA_USERNAME;
 
-const IMAGES_DIR = path.join(__dirname, '../www/images/insta');
-const LINKS_JSON_PATH = path.join(__dirname, '../www/insta-links.json');
+const IMAGES_DIR = process.env.IMAGES_DIR || path.join(__dirname, '../www/images/insta');
+const LINKS_JSON_PATH = process.env.LINKS_JSON_PATH || path.join(__dirname, '../www/insta-links.json');
+const DEBUG_HTML_PATH = process.env.DEBUG_HTML_PATH || path.join(__dirname, '../www/debug-insta.html');
 
 fs.mkdirSync(IMAGES_DIR, { recursive: true });
 if (!fs.existsSync(LINKS_JSON_PATH)) {
@@ -83,11 +84,14 @@ function extractPostsFromScripts(html) {
 function extractPostsFromHTML(html) {
     const posts = [];
     const seen = new Set();
-    const regex = /href="\/p\/([A-Za-z0-9_-]+)\/"[\s\S]{0,800}?src="(https:\/\/[^"]*(?:cdninstagram\.com|fbcdn\.net)[^"]*\.jpg[^"]*)"/g;
+    // Instagram serve .webp, .jpg ou URLs sem extensao; usa src, srcset ou data-src
+    const regex = /href="\/p\/([A-Za-z0-9_-]+)\/"[\s\S]{0,2000}?(?:src|srcset|data-src)="(https:\/\/[^"]*(?:cdninstagram\.com|fbcdn\.net)[^"]*)"/g;
     let match;
     while ((match = regex.exec(html)) !== null) {
-        const [, shortcode, imageUrl] = match;
-        if (!seen.has(shortcode)) {
+        const [, shortcode, rawUrl] = match;
+        // srcset pode ter "url 640w, url 1280w" — pega a ultima (maior resolucao)
+        const imageUrl = rawUrl.split(',').pop().trim().split(' ')[0];
+        if (!seen.has(shortcode) && imageUrl) {
             seen.add(shortcode);
             posts.push({ shortcode, imageUrl });
         }
@@ -114,6 +118,16 @@ async function runScraper() {
     console.log(`[DEBUG] Tamanho da resposta: ${res.body.length} chars`);
     console.log(`[DEBUG] Inicio do body: ${res.body.slice(0, 200)}`);
 
+    // Diagnostico da estrutura do HTML
+    const scriptTagCount = (res.body.match(/<script/g) || []).length;
+    const postLinks = [...res.body.matchAll(/href="\/p\/([A-Za-z0-9_-]+)\/"/g)].map(m => m[1]);
+    const cdnImages = (res.body.match(/cdninstagram\.com|fbcdn\.net/g) || []).length;
+    console.log(`[DEBUG] Script tags: ${scriptTagCount} | Links /p/: ${postLinks.length} | Refs CDN: ${cdnImages}`);
+    if (postLinks.length > 0) console.log(`[DEBUG] Shortcodes: ${postLinks.slice(0, 5).join(', ')}`);
+    // Trecho de 500 chars ao redor do primeiro link /p/ para inspecao
+    const firstPIdx = res.body.indexOf('href="/p/');
+    if (firstPIdx > -1) console.log(`[DEBUG] Contexto do 1o post: ${res.body.slice(firstPIdx, firstPIdx + 500)}`);
+
     if (res.statusCode !== 200) {
         throw new Error(`Status inesperado: ${res.statusCode} | Body: ${res.body.slice(0, 300)}`);
     }
@@ -129,7 +143,7 @@ async function runScraper() {
 
     if (!posts || posts.length === 0) {
         // Salva o HTML para analise manual no artefato do Actions
-        fs.writeFileSync(path.join(__dirname, '../www/debug-insta.html'), res.body);
+        fs.writeFileSync(DEBUG_HTML_PATH, res.body);
         throw new Error('Posts nao encontrados. HTML salvo em www/debug-insta.html para diagnostico.');
     }
 
