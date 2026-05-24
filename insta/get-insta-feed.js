@@ -184,7 +184,7 @@ async function runScraper() {
 
         // Step 2: busca o feed com o user_id
         if (userId && (!posts || posts.length === 0)) {
-            const feedUrl = `https://i.instagram.com/api/v1/feed/user/${userId}/?count=12`;
+            const feedUrl = `https://i.instagram.com/api/v1/feed/user/${userId}/?count=9`;
             const proxyFeedUrl = new URL('https://api.scrape.do');
             proxyFeedUrl.searchParams.set('token', SCRAPER_KEY);
             proxyFeedUrl.searchParams.set('url', feedUrl);
@@ -224,7 +224,7 @@ async function runScraper() {
         }
 
         if (userId && (!posts || posts.length === 0)) {
-            const feedUrl = `https://i.instagram.com/api/v1/feed/user/${userId}/?count=12`;
+            const feedUrl = `https://i.instagram.com/api/v1/feed/user/${userId}/?count=9`;
             const feedRes = await requestRaw(feedUrl, igHeaders);
             console.log(`[DEBUG] Direct Feed Status: ${feedRes.statusCode} | Body: ${feedRes.body.slice(0, 200)}`);
             if (feedRes.statusCode === 200) {
