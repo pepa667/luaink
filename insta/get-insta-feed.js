@@ -76,13 +76,18 @@ function extractPostsFromObject(obj, depth = 0) {
             })).filter(p => p.shortcode && p.imageUrl);
     }
     // Formato API mobile: items[] com 'code' e image_versions2
-    if (Array.isArray(obj.items) && obj.items.length > 0 && obj.items[0]?.code) {
+    // Inclui fotos (1), videos/reels (2) e carrosséis (8) — todos têm thumbnail
+    if (Array.isArray(obj.items) && obj.items.length > 0) {
         const posts = obj.items
-            .filter(item => (item.code || item.shortcode) && item.media_type !== 2) // exclui videos
-            .map(item => ({
-                shortcode: item.code || item.shortcode,
-                imageUrl: item.image_versions2?.candidates?.[0]?.url || item.display_url,
-            })).filter(p => p.shortcode && p.imageUrl);
+            .map(item => {
+                const shortcode = item.code || item.shortcode;
+                if (!shortcode) return null;
+                const imageUrl = item.image_versions2?.candidates?.[0]?.url
+                    || item.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url
+                    || item.display_url;
+                return imageUrl ? { shortcode, imageUrl } : null;
+            })
+            .filter(Boolean);
         if (posts.length > 0) return posts;
     }
     for (const val of Object.values(obj)) {
