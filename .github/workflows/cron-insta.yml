@@ -1,41 +1,42 @@
-name: Automacao Galeria Insta Estatica
+name: build-and-sync
 
 on:
   schedule:
-    - cron: '0 3 * * 0'
-  workflow_dispatch:
+    - cron: '0 0 * * *' # Roda todo dia à meia-noite
+  workflow_dispatch: # Ativa o botão de rodar manual no painel do Actions
 
-jobs:
+labs:
   build-and-sync:
     runs-on: ubuntu-latest
+    env:
+      [cite_start]FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Corrige os warnings de depreciação do GitHub 
 
     steps:
-      - name: Checkout do Repositório
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Instanciar Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 24
 
-      - name: Executar Pipeline de Scraping
+      - name: Run Instagram Scraper
         env:
-          INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}
         run: node insta/get-insta-feed.js
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Garante o tracking sem falhar caso o arquivo acabe de ser criado
-          git add -A www/images/insta/
-          if [ -f www/insta-links.json ]; then git add www/insta-links.json; fi
-          
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add www/images/insta/
+          git add www/insta-links.json
           if git diff --cached --quiet; then
-            echo "Nenhuma alteração detectada no Instagram."
+            echo "Nenhuma modificação pendente no feed estático."
           else
-            git commit -m "chore: update static feed images and links [skip ci]"
+            git commit -m "chore: update instagram static feed images [skip ci]"
             git push origin main
           fi
