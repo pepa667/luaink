@@ -30,47 +30,96 @@ function downloadImage(url, destPath) {
 }
 
 async function pipelineInsta() {
-    console.log(`[START] Iniciando processamento para: @${TARGET_USERNAME}`);
+    console.log(`[START] Iniciando Scraping de HTML Puro para: @${TARGET_USERNAME}`);
     
     if (!TARGET_USERNAME || !SCRAPE_DO_TOKEN) {
         console.error("[CRITICAL] Variáveis de ambiente faltando!");
         process.exit(1);
     }
 
-    // Endpoint público estável do ecossistema Web do Instagram
-    const targetUrl = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${TARGET_USERNAME}`;
-    
-    // Injeta os cabeçalhos obrigatórios usando o formato exato que o Scrape.do exige via URL parameter
-    const targetHeaders = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "X-IG-App-ID": "936619743392459"
-    };
-    
-    const proxyUrl = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&headers=${encodeURIComponent(JSON.stringify(targetHeaders))}`;
+    // Acessa a página pública principal do usuário
+    const targetUrl = `https://www.instagram.com/${TARGET_USERNAME}/`;
+    const proxyUrl = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}`;
 
     try {
         const response = await fetch(proxyUrl);
-        const rawText = await response.text();
+        const html = await response.text();
         
-        if (!response.ok || !rawText) {
-            throw new Error(`Resposta inválida do gateway Scrape.do. Status: ${response.status}`);
+        if (!response.ok || !html) {
+            throw new Error(`Não foi possível ler o HTML da página através do proxy. Status: ${response.status}`);
         }
 
-        const data = JSON.parse(rawText);
-        const userObj = data.data?.user;
-        
-        if (!userObj || !userObj.edge_owner_to_timeline_media) {
-            throw new Error("Estrutura não encontrada. O perfil pode estar privado ou a API mudou.");
+        let edges = [];
+
+        // ESTRATÉGIA A: Tentar capturar o bloco injetado injection _sharedData
+        const sharedDataRegex = /window\._sharedData\s*=\s*({.+?});\s*<\/script>/;
+        const sharedMatch = html.match(sharedDataRegex);
+
+        if (sharedMatch && sharedMatch[1]) {
+            console.log("[PARSER] Bloco '_sharedData' localizado via Regex!");
+            const parsed = JSON.parse(sharedMatch[1]);
+            const userObj = parsed.entry_data?.ProfilePage?.[0]?.graphql?.user;
+            if (userObj?.edge_owner_to_timeline_media?.edges) {
+                edges = userObj.edge_owner_to_timeline_media.edges;
+            }
         }
 
-        const edges = userObj.edge_owner_to_timeline_media.edges;
-        if (edges.length === 0) throw new Error("Nenhum post público retornado para este perfil.");
+        // ESTRATÉGIA B (FALLBACK): Se não achar o sharedData, varrer tags <script> adicionais geradas pelo Next/Hydration do Insta
+        if (edges.length === 0) {
+            console.log("[PARSER] Tentando Fallback B: Capturar scripts de hidratação internos...");
+            const scriptBlocks = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/g) || [];
+            
+            for (const script of scriptBlocks) {
+                if (script.includes("edge_owner_to_timeline_media")) {
+                    // Limpa as tags de script para isolar apenas o JSON interno
+                    const cleanJsonText = script.replace(/<\/?.+?>/g, '').trim().replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+                    try {
+                        const parsedFallback = JSON.parse(cleanJsonText);
+                        const userObj = parsedFallback.require?.[0]?.[3]?.[0]?.__bbox?.result?.data?.user || parsedFallback.data?.user;
+                        if (userObj?.edge_owner_to_timeline_media?.edges) {
+                            edges = userObj.edge_owner_to_timeline_media.edges;
+                            break;
+                        }
+                    } catch (e) {
+                        // Ignora falhas de parse de blocos parciais e continua procurando
+                    }
+                }
+            }
+        }
+
+        // ESTRATÉGIA C (ÚLTIMO RECURSO): Se a renderização for estritamente via SSR nativo simplificado
+        if (edges.length === 0) {
+            console.log("[PARSER] Tentando Fallback C: Extração direta de metadados de imagens...");
+            // Regex agressiva para caçar links de posts e imagens em tags meta/img jogadas no corpo do HTML deslogado
+            const imagePattern = /"display_url":"(https:\/\/[^#]+?\.(?:jpg|webp|png)[^#]*?)"/g;
+            let match;
+            const uniqueUrls = new Set();
+            
+            while ((match = imagePattern.exec(html)) !== null) {
+                let cleanUrl = match[1].replace(/\\u0026/g, '&');
+                uniqueUrls.add(cleanUrl);
+                if (uniqueUrls.size >= 9) break;
+            }
+
+            if (uniqueUrls.size > 0) {
+                edges = Array.from(uniqueUrls).map((url, i) => ({
+                    node: {
+                        display_url: url,
+                        shortcode: `static_post_${i}`
+                    }
+                }));
+            }
+        }
+
+        if (edges.length === 0) {
+            throw new Error("O Instagram escondeu completamente as mídias da página pública HTML. Bloqueio temporário no IP do proxy.");
+        }
 
         const topPosts = edges.slice(0, 9);
         fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
         const linksData = [];
-        console.log(`[PIPELINE] Baixando ${topPosts.length} mídias identificadas...`);
+        console.log(`[PIPELINE] Baixando ${topPosts.length} mídias interpretadas pelo parser estático...`);
         
         for (let i = 0; i < topPosts.length; i++) {
             const post = topPosts[i].node;
@@ -84,15 +133,15 @@ async function pipelineInsta() {
             linksData.push({
                 index: indexValue,
                 localImage: `images/insta/${imageName}`,
-                permalink: `https://www.instagram.com/p/${post.shortcode}/`
+                permalink: post.shortcode.startsWith('static_post_') ? `https://www.instagram.com/${TARGET_USERNAME}/` : `https://www.instagram.com/p/${post.shortcode}/`
             });
         }
 
         fs.writeFileSync(LINKS_JSON_PATH, JSON.stringify({ posts: linksData }, null, 2));
-        console.log(`[SUCCESS] Pipeline finalizado! Todos os dados estáticos salvos em /www.`);
+        console.log(`[SUCCESS] Scraping de HTML executado! Resultados persistidos com sucesso.`);
 
     } catch (error) {
-        console.error(`[CRITICAL ERRO] O Script quebrou: ${error.message}`);
+        console.error(`[CRITICAL ERRO] O Script estático quebrou: ${error.message}`);
         process.exit(1); 
     }
 }
