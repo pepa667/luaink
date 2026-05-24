@@ -34,6 +34,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add www/images/insta/
           git add www/insta-links.json
+          git add --ignore-errors www/debug-insta.html || true
           if git diff --cached --quiet; then
             echo "Nenhuma modificação pendente no feed estático."
           else
