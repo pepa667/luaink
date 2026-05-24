@@ -14,11 +14,13 @@ function downloadImage(url, destPath) {
         
         https.get(proxyUrl, (response) => {
             if (response.statusCode !== 200) {
-                reject(new Error(`Falha no download. Status: ${response.statusCode}`));
+                reject(new Error(`Falha no download da imagem. Status: ${response.statusCode}`));
                 return;
             }
+
             const fileStream = fs.createWriteStream(destPath);
             response.pipe(fileStream);
+
             fileStream.on('finish', () => {
                 fileStream.close();
                 resolve();
@@ -35,30 +37,42 @@ async function pipelineInsta() {
         process.exit(1);
     }
 
-    const targetUrl = `https://www.instagram.com/${TARGET_USERNAME}/?__a=1&__d=dis`;
-    const proxyUrl = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}`;
+    // Endpoint alternativo mais estável para perfis públicos
+    const targetUrl = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${TARGET_USERNAME}`;
+    const proxyUrl = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&extraHeaders=true`;
 
     try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Erro no proxy: ${response.status}`);
+        const response = await fetch(proxyUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'X-IG-App-ID': '936619743392459' // Cabeçalho essencial para validar chamadas na API interna
+            }
+        });
 
-        const data = await response.json();
-        const userObj = data.graphql?.user || data.data?.user;
+        const rawText = await response.text();
+        
+        if (!response.ok || !rawText) {
+            throw new Error(`Resposta inválida do gateway. Status: ${response.status}`);
+        }
+
+        const data = JSON.parse(rawText);
+        const userObj = data.data?.user;
         
         if (!userObj || !userObj.edge_owner_to_timeline_media) {
-            throw new Error("Estrutura inválida retornada pelo Meta.");
+            throw new Error("Estrutura não encontrada. O perfil pode estar privado ou bloqueado.");
         }
 
         const edges = userObj.edge_owner_to_timeline_media.edges;
-        const topPosts = edges.slice(0, 9); // Garante os 9 posts da grade
+        if (edges.length === 0) throw new Error("Nenhum post retornado.");
 
+        const topPosts = edges.slice(0, 9);
         fs.mkdirSync(IMAGES_DIR, { recursive: true });
-        const linksData = [];
 
+        const linksData = [];
+        console.log(`[PIPELINE] Processando ${topPosts.length} posts...`);
+        
         for (let i = 0; i < topPosts.length; i++) {
             const post = topPosts[i].node;
-            
-            // Padroniza o número com dois dígitos (01, 02, 03...)
             const indexValue = String(i + 1).padStart(2, '0');
             const imageName = `instaFoto_${indexValue}.jpg`;
             const destPath = path.join(IMAGES_DIR, imageName);
@@ -74,11 +88,12 @@ async function pipelineInsta() {
         }
 
         fs.writeFileSync(LINKS_JSON_PATH, JSON.stringify({ posts: linksData }, null, 2));
-        console.log(`[SUCCESS] Fotos salvas e 'insta-links.json' gerado.`);
+        console.log(`[SUCCESS] Tudo salvo na pasta www!`);
 
     } catch (error) {
-        console.error(`[FALLBACK] O Script falhou: ${error.message}`);
-        process.exit(0);
+        console.error(`[CRITICAL ERRO] O Script quebrou: ${error.message}`);
+        // Força o GitHub Actions a parar aqui em vez de tentar commitar arquivos inexistentes
+        process.exit(1); 
     }
 }
 
