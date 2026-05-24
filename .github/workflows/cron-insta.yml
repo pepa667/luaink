@@ -1,0 +1,41 @@
+name: Update Instagram Feed Static Data
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Roda todas as madrugadas às 03:00 UTC (Modo Eterno)
+  workflow_dispatch: # Permite-te forçar a atualização clicando num botão no GitHub
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Scraper
+        env:
+          INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+        run: node insta/get-insta-feed.js
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Dá o tracking na pasta de fotos e no arquivo de links
+          git add www/images/insta/
+          git add www/insta-links.json
+          
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração detectada no Instagram."
+          else
+            git commit -m "chore: update static feed images and links [skip ci]"
+            git push origin main
+          fi
