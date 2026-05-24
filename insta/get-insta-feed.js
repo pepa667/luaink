@@ -14,10 +14,10 @@ if (!fs.existsSync(LINKS_JSON_PATH)) {
     fs.writeFileSync(LINKS_JSON_PATH, JSON.stringify({ posts: [] }, null, 2));
 }
 
-function requestRaw(url) {
+function requestRaw(url, extraHeaders = {}) {
     return new Promise((resolve, reject) => {
         const parsedUrl = new URL(url);
-        https.get({ hostname: parsedUrl.hostname, path: parsedUrl.pathname + parsedUrl.search }, (res) => {
+        https.get({ hostname: parsedUrl.hostname, path: parsedUrl.pathname + parsedUrl.search, headers: extraHeaders }, (res) => {
             let data = '';
             res.on('data', (chunk) => data += chunk);
             res.on('end', () => resolve({ statusCode: res.statusCode, body: data }));
@@ -43,9 +43,10 @@ function downloadFile(url, destPath) {
     });
 }
 
-// Busca recursiva por edge_owner_to_timeline_media dentro de qualquer JSON
+// Busca recursiva por dados de posts dentro de qualquer JSON
+// Suporta formato antigo (edge_owner_to_timeline_media) e novo (media.edges com 'code')
 function extractPostsFromObject(obj, depth = 0) {
-    if (depth > 12 || !obj || typeof obj !== 'object') return null;
+    if (depth > 15 || !obj || typeof obj !== 'object') return null;
     if (Array.isArray(obj)) {
         for (const item of obj) {
             const found = extractPostsFromObject(item, depth + 1);
@@ -53,13 +54,25 @@ function extractPostsFromObject(obj, depth = 0) {
         }
         return null;
     }
+    // Formato antigo: GraphQL edge_owner_to_timeline_media
     if (obj.edge_owner_to_timeline_media?.edges?.length > 0) {
         return obj.edge_owner_to_timeline_media.edges
-            .filter(e => e.node?.__typename !== 'GraphVideo' && e.node?.shortcode)
+            .filter(e => e.node?.__typename !== 'GraphVideo' && (e.node?.shortcode || e.node?.code))
             .map(e => ({
-                shortcode: e.node.shortcode,
-                imageUrl: e.node.display_url || e.node.thumbnail_src,
-            }));
+                shortcode: e.node.shortcode || e.node.code,
+                imageUrl: e.node.display_url || e.node.thumbnail_src
+                    || e.node.image_versions2?.candidates?.[0]?.url,
+            })).filter(p => p.shortcode && p.imageUrl);
+    }
+    // Formato novo: media.edges com campo 'code'
+    if (obj.media?.edges?.length > 0) {
+        return obj.media.edges
+            .filter(e => e.node && (e.node.code || e.node.shortcode))
+            .map(e => ({
+                shortcode: e.node.code || e.node.shortcode,
+                imageUrl: e.node.image_versions2?.candidates?.[0]?.url
+                    || e.node.display_url || e.node.thumbnail_src,
+            })).filter(p => p.shortcode && p.imageUrl);
     }
     for (const val of Object.values(obj)) {
         const found = extractPostsFromObject(val, depth + 1);
@@ -107,44 +120,71 @@ async function runScraper() {
         throw new Error('Falta configurar SCRAPER_API_KEY ou INSTA_USERNAME nos Secrets.');
     }
 
-    const targetUrl = `https://www.instagram.com/${USERNAME}/`;
-    // render=true: Chrome headless com fingerprint real - bypassa os anti-bots do Instagram.
-    // Os endpoints da API (/api/v1/...) retornam {"status":"ok"} vazios sem sessao autenticada.
-    const proxyUrl = `https://api.scrape.do?token=${SCRAPER_KEY}&url=${encodeURIComponent(targetUrl)}&render=true`;
+    let posts = null;
 
-    const res = await requestRaw(proxyUrl);
+    // ESTRATEGIA 1: endpoint JSON do Instagram via scrape.do com X-IG-App-ID
+    // Este e o mesmo endpoint que o frontend do Instagram usa — retorna JSON estruturado.
+    // Requer customHeaders=true para o scrape.do repassar o header X-IG-App-ID.
+    const apiEndpoint = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${USERNAME}`;
+    const proxyApiUrl = new URL('https://api.scrape.do');
+    proxyApiUrl.searchParams.set('token', SCRAPER_KEY);
+    proxyApiUrl.searchParams.set('url', apiEndpoint);
+    proxyApiUrl.searchParams.set('customHeaders', 'true');
 
-    console.log(`[DEBUG] HTTP Status: ${res.statusCode}`);
-    console.log(`[DEBUG] Tamanho da resposta: ${res.body.length} chars`);
-    console.log(`[DEBUG] Inicio do body: ${res.body.slice(0, 200)}`);
+    console.log('[STRATEGY 1] Chamando web_profile_info JSON API...');
+    const apiRes = await requestRaw(proxyApiUrl.toString(), {
+        'x-ig-app-id': '936619743392459',
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9',
+        'referer': 'https://www.instagram.com/',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+    });
 
-    // Diagnostico da estrutura do HTML
-    const scriptTagCount = (res.body.match(/<script/g) || []).length;
-    const postLinks = [...res.body.matchAll(/href="\/p\/([A-Za-z0-9_-]+)\/"/g)].map(m => m[1]);
-    const cdnImages = (res.body.match(/cdninstagram\.com|fbcdn\.net/g) || []).length;
-    console.log(`[DEBUG] Script tags: ${scriptTagCount} | Links /p/: ${postLinks.length} | Refs CDN: ${cdnImages}`);
-    if (postLinks.length > 0) console.log(`[DEBUG] Shortcodes: ${postLinks.slice(0, 5).join(', ')}`);
-    // Trecho de 500 chars ao redor do primeiro link /p/ para inspecao
-    const firstPIdx = res.body.indexOf('href="/p/');
-    if (firstPIdx > -1) console.log(`[DEBUG] Contexto do 1o post: ${res.body.slice(firstPIdx, firstPIdx + 500)}`);
+    console.log(`[DEBUG] API Status: ${apiRes.statusCode} | Body: ${apiRes.body.slice(0, 300)}`);
 
-    if (res.statusCode !== 200) {
-        throw new Error(`Status inesperado: ${res.statusCode} | Body: ${res.body.slice(0, 300)}`);
+    if (apiRes.statusCode === 200) {
+        try {
+            const json = JSON.parse(apiRes.body);
+            posts = extractPostsFromObject(json);
+            if (posts?.length > 0) console.log(`[STRATEGY 1] Sucesso! ${posts.length} posts encontrados.`);
+            else console.log('[STRATEGY 1] JSON parseado mas posts nao encontrados na estrutura.');
+        } catch (e) {
+            console.log(`[STRATEGY 1] JSON parse falhou: ${e.message}. Body: ${apiRes.body.slice(0, 200)}`);
+        }
     }
 
-    // 1a tentativa: JSON embutido nas script tags do HTML
-    let posts = extractPostsFromScripts(res.body);
-
-    // 2a tentativa: regex direto no HTML renderizado
+    // ESTRATEGIA 2: render=true com wait=8000 para aguardar o React carregar os posts
+    // Instagram e uma SPA — os posts so aparecem no DOM apos o JS fazer os fetches de API.
     if (!posts || posts.length === 0) {
-        console.log('[DEBUG] Script JSON nao encontrado. Tentando regex no HTML renderizado...');
-        posts = extractPostsFromHTML(res.body);
+        console.log('[STRATEGY 2] Tentando render=true com wait=8000ms...');
+        const targetUrl = `https://www.instagram.com/${USERNAME}/`;
+        const proxyUrl = new URL('https://api.scrape.do');
+        proxyUrl.searchParams.set('token', SCRAPER_KEY);
+        proxyUrl.searchParams.set('url', targetUrl);
+        proxyUrl.searchParams.set('render', 'true');
+        proxyUrl.searchParams.set('wait', '8000');
+
+        const res = await requestRaw(proxyUrl.toString());
+
+        console.log(`[DEBUG] HTML Status: ${res.statusCode} | Tamanho: ${res.body.length} chars`);
+        const postLinks = [...res.body.matchAll(/href="\/p\/([A-Za-z0-9_-]+)\/"/g)].map(m => m[1]);
+        const cdnImages = (res.body.match(/cdninstagram\.com|fbcdn\.net/g) || []).length;
+        console.log(`[DEBUG] Links /p/: ${postLinks.length} | Refs CDN: ${cdnImages}`);
+
+        if (res.statusCode === 200) {
+            posts = extractPostsFromScripts(res.body);
+            if (!posts || posts.length === 0) posts = extractPostsFromHTML(res.body);
+        }
+
+        if (!posts || posts.length === 0) {
+            fs.writeFileSync(DEBUG_HTML_PATH, res.body);
+        }
     }
 
     if (!posts || posts.length === 0) {
-        // Salva o HTML para analise manual no artefato do Actions
-        fs.writeFileSync(DEBUG_HTML_PATH, res.body);
-        throw new Error('Posts nao encontrados. HTML salvo em www/debug-insta.html para diagnostico.');
+        throw new Error('Posts nao encontrados. Verifique o artefato debug-insta.html para diagnostico.');
     }
 
     const topPosts = posts.slice(0, 9);
