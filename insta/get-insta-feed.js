@@ -10,12 +10,14 @@ const LINKS_JSON_PATH = path.join(__dirname, '../www/insta-links.json');
 
 // Headers obrigatórios para a API mobile do Instagram.
 // Sem X-IG-App-ID o Instagram retorna HTML da página de login em vez de JSON.
-const INSTA_HEADERS_B64 = Buffer.from(JSON.stringify({
+// customHeaders=true no scrape.do instrui o proxy a encaminhar os headers
+// da requisição de entrada para o destino.
+const INSTA_HEADERS = {
     'X-IG-App-ID': '936619743392459',
     'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram/334.0.0.12.96',
     'Accept': 'application/json',
     'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-})).toString('base64');
+};
 
 fs.mkdirSync(IMAGES_DIR, { recursive: true });
 if (!fs.existsSync(LINKS_JSON_PATH)) {
@@ -42,9 +44,15 @@ function downloadFile(url, destPath) {
     });
 }
 
-function requestRaw(url) {
+function requestRaw(url, headers = {}) {
     return new Promise((resolve, reject) => {
-        https.get(url, (res) => {
+        const parsedUrl = new URL(url);
+        const options = {
+            hostname: parsedUrl.hostname,
+            path: parsedUrl.pathname + parsedUrl.search,
+            headers,
+        };
+        https.get(options, (res) => {
             let data = '';
             res.on('data', (chunk) => data += chunk);
             res.on('end', () => resolve({ statusCode: res.statusCode, body: data }));
@@ -61,10 +69,11 @@ async function runScraper() {
     }
 
     const targetInstagramUrl = `https://www.instagram.com/api/v1/feed/user/${USERNAME}/username/?count=12`;
-    const proxyUrl = `https://api.scrape.do?token=${SCRAPER_KEY}&url=${encodeURIComponent(targetInstagramUrl)}&customHeaders=${INSTA_HEADERS_B64}`;
+    // customHeaders=true: scrape.do encaminha os headers desta requisição para o Instagram
+    const proxyUrl = `https://api.scrape.do?token=${SCRAPER_KEY}&url=${encodeURIComponent(targetInstagramUrl)}&customHeaders=true`;
 
     try {
-        const res = await requestRaw(proxyUrl);
+        const res = await requestRaw(proxyUrl, INSTA_HEADERS);
 
         console.log(`[DEBUG] HTTP Status do proxy: ${res.statusCode}`);
         console.log(`[DEBUG] Resposta (primeiros 300 chars): ${res.body.slice(0, 300)}`);
