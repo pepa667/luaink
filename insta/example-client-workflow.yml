@@ -4,6 +4,7 @@
 #   - SCRAPER_API_KEY: chave da conta scrape.do (compartilhada entre todos os clientes)
 #   - INSTA_USERNAME: username do Instagram deste cliente (ex: luaink.tattoo)
 #
+#
 # O script e a lógica de scraping ficam em pepa667/luaink — zero manutenção no cliente.
 
 name: update-instagram-feed
