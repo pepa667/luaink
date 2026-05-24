@@ -37,39 +37,40 @@ async function pipelineInsta() {
         process.exit(1);
     }
 
-    // Endpoint alternativo mais estável para perfis públicos
+    // Endpoint público estável do ecossistema Web do Instagram
     const targetUrl = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${TARGET_USERNAME}`;
-    const proxyUrl = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&extraHeaders=true`;
+    
+    // Injeta os cabeçalhos obrigatórios usando o formato exato que o Scrape.do exige via URL parameter
+    const targetHeaders = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-IG-App-ID": "936619743392459"
+    };
+    
+    const proxyUrl = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&headers=${encodeURIComponent(JSON.stringify(targetHeaders))}`;
 
     try {
-        const response = await fetch(proxyUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'X-IG-App-ID': '936619743392459' // Cabeçalho essencial para validar chamadas na API interna
-            }
-        });
-
+        const response = await fetch(proxyUrl);
         const rawText = await response.text();
         
         if (!response.ok || !rawText) {
-            throw new Error(`Resposta inválida do gateway. Status: ${response.status}`);
+            throw new Error(`Resposta inválida do gateway Scrape.do. Status: ${response.status}`);
         }
 
         const data = JSON.parse(rawText);
         const userObj = data.data?.user;
         
         if (!userObj || !userObj.edge_owner_to_timeline_media) {
-            throw new Error("Estrutura não encontrada. O perfil pode estar privado ou bloqueado.");
+            throw new Error("Estrutura não encontrada. O perfil pode estar privado ou a API mudou.");
         }
 
         const edges = userObj.edge_owner_to_timeline_media.edges;
-        if (edges.length === 0) throw new Error("Nenhum post retornado.");
+        if (edges.length === 0) throw new Error("Nenhum post público retornado para este perfil.");
 
         const topPosts = edges.slice(0, 9);
         fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
         const linksData = [];
-        console.log(`[PIPELINE] Processando ${topPosts.length} posts...`);
+        console.log(`[PIPELINE] Baixando ${topPosts.length} mídias identificadas...`);
         
         for (let i = 0; i < topPosts.length; i++) {
             const post = topPosts[i].node;
@@ -77,7 +78,7 @@ async function pipelineInsta() {
             const imageName = `instaFoto_${indexValue}.jpg`;
             const destPath = path.join(IMAGES_DIR, imageName);
 
-            console.log(`-> Baixando imagem ${indexValue}/09...`);
+            console.log(`-> Baixando imagem [${indexValue}/09]...`);
             await downloadImage(post.display_url, destPath);
 
             linksData.push({
@@ -88,11 +89,10 @@ async function pipelineInsta() {
         }
 
         fs.writeFileSync(LINKS_JSON_PATH, JSON.stringify({ posts: linksData }, null, 2));
-        console.log(`[SUCCESS] Tudo salvo na pasta www!`);
+        console.log(`[SUCCESS] Pipeline finalizado! Todos os dados estáticos salvos em /www.`);
 
     } catch (error) {
         console.error(`[CRITICAL ERRO] O Script quebrou: ${error.message}`);
-        // Força o GitHub Actions a parar aqui em vez de tentar commitar arquivos inexistentes
         process.exit(1); 
     }
 }
