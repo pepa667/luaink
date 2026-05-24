@@ -7,7 +7,7 @@ on:
 
 jobs:
   update-feed:
-    uses: ./.github/workflows/scrape-reusable.yml
+    uses: pepa667/insta-scraper/.github/workflows/scrape-reusable.yml@main
     secrets:
       SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
       INSTA_USERNAME: ${{ secrets.INSTA_USERNAME }}
