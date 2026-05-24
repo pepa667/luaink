@@ -2,14 +2,14 @@ name: build-and-sync
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Roda todo dia à meia-noite
-  workflow_dispatch: # Ativa o botão de rodar manual no painel do Actions
+    - cron: '0 0 * * *' # Todo dia à meia-noite
+  workflow_dispatch: # Botão manual
 
 jobs:
   build-and-sync:
     runs-on: ubuntu-latest
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Corrige os warnings de depreciação do GitHub 
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repository
